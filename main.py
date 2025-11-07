@@ -14,8 +14,6 @@ TILE = 16
 enemies = []
 items = []
 keys_items = []
-steps_before_enemy_move = 2
-current_step_count = 0
 player_x = 0
 player_y = 0
 required_keys = 2
@@ -133,19 +131,23 @@ def draw():
         surface = images.heart
         surface.set_alpha(gui_opacity * 255)
         screen.blit(surface, (12 + heart * 32, 12))
-    for i in range(steps_before_enemy_move - current_step_count):
+    for i in range(player.available_steps):
         surface = images.footstep
         surface.set_alpha(gui_opacity * 255)
         screen.blit(surface, (12 + i * 20, 48))
+    for i in range(player.potions):
+        surface = images.potion
+        surface.set_alpha(gui_opacity * 255)
+        screen.blit(surface, (12 + i * 20, 72))
     for key in range(required_keys):
         if key < keys_collected:
             surface = images.key.copy()
             surface.set_alpha(gui_opacity * 255)
-            screen.blit(surface, (12 + key * 20, 72))
+            screen.blit(surface, (12 + key * 20, 96 if player.potions > 0 else 72))
         else:
             surface = images.key_filled
             surface.set_alpha(gui_opacity * 255)
-            screen.blit(surface, (12 + key * 20, 72))
+            screen.blit(surface, (12 + key * 20, 96 if player.potions > 0 else 72))
     # death screen
     screen.draw.text("YOU DIED...", (WIDTH / 2, HEIGHT / 2 - 48), fontsize = 48,  anchor = (0.5, 0.5), color = "red", owidth = 2, ocolor = "black", alpha = 1 - gui_opacity)
     screen.draw.text(f"Dungeons cleared: {current_room - 1}", (WIDTH / 2, HEIGHT / 2 - 12), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black", alpha = 1 - gui_opacity)
@@ -165,6 +167,7 @@ def on_key_down(key):
             enemy.move_towards_player(player_x, player_y, TILE, generated_map, player)
     def move_player():
         global current_step_count, keys_collected
+        remaining_steps = player.available_steps
         player.move(player_x, player_y, TILE)
         if (player_x, player_y) in keys_items:
             keys_items.remove((player_x, player_y))
@@ -173,9 +176,7 @@ def on_key_down(key):
         if player_x == exit_x and player_y == exit_y:
             if keys_collected == required_keys:
                 next_room()
-        current_step_count += 1
-        if current_step_count >= steps_before_enemy_move:
-            current_step_count = 0
+        if remaining_steps == 0:
             move_enemies()
             sounds.footstep.play()
         else:
@@ -207,6 +208,8 @@ def on_key_down(key):
                 player_y -= 1
                 return
             move_player()
+        elif key == keys.C:
+            player.use_potion()
     else:
         if key == keys.R:
             restart()

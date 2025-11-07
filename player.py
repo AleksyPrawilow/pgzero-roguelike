@@ -5,6 +5,7 @@ from pgzero.animation import animate
 class Player(Actor):
     def __init__(self, image, pos=(0,0), anchor=('center', 'center'), max_health = 3, on_death = lambda: print("dead")):
         super().__init__(image, pos, anchor)
+        # animations
         self.animations = {
             'idle_left': ['player_idle_1', 'player_idle_2', 'player_idle_3', 'player_idle_4'],
             'walk_left': ['player_walk_1', 'player_walk_2', 'player_walk_3', 'player_walk_4', 'player_walk_5', 'player_walk_6', 'player_walk_7', 'player_walk_8'],
@@ -14,12 +15,16 @@ class Player(Actor):
         self.current_animation = 'idle'
         self.direction = 'left'
         self.image = self.animations[self.current_animation + "_" + self.direction][0]
+        self.fps = 12
+        self.frame_index = 0
+        # player related stuff
+        self.max_steps = 2
+        self.available_steps = self.max_steps
+        self.potions = 3
         self.max_health = max_health
         self.current_health = max_health
         self.dead = False
         self.on_death = on_death
-        self.fps = 12
-        self.frame_index = 0
         main.clock.schedule_interval(self.advance_frame, 1 / self.fps)
     
     def advance_frame(self):
@@ -33,6 +38,9 @@ class Player(Actor):
         self.image = self.animations[self.current_animation + "_" + self.direction][0]
     
     def move(self, new_x, new_y, tile_size):
+        if self.available_steps == 0:
+            self.available_steps = self.max_steps
+        self.available_steps -= 1
         self.set_state('walk')
         if new_x != self.x // tile_size:
             if self.x // tile_size < new_x:
@@ -45,6 +53,13 @@ class Player(Actor):
     def heal(self, amount):
         self.current_health = min(self.max_health, self.current_health + amount)
         main.sounds.player_heal.play()
+    
+    def use_potion(self):
+        if self.potions == 0:
+            return
+        self.potions -= 1
+        self.available_steps += 1
+        main.sounds.potion.play()
     
     def damage(self, amount):
         self.current_health = max(0, self.current_health - amount)
