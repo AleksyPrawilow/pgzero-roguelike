@@ -33,9 +33,12 @@ exit_x = 0
 exit_y = 0
 music.play('ambience')
 
+def on_player_death():
+    transition_handler.fade(0.5, lambda: print("Transition finished"))
+
 def restart():
     global player, player_x, player_y, gui_opacity, current_room
-    player = Player('player', on_death = lambda: transition_handler.fade(0.5, lambda: print("Trans finished")))
+    player = Player('player', on_death = on_player_death)
     player_x = 13
     player_y = 13
     player.move(player_x, player_y, TILE)
@@ -72,7 +75,9 @@ def add_items_and_enemies():
                         exit_y = y * 9 + j
     # leaving only 2 keys on the map
     random.shuffle(keys_items)
+    print(keys_items)
     keys_items = keys_items[:required_keys]
+    print(keys_items)
 
 def next_room():
     global changing_rooms
@@ -83,6 +88,7 @@ def next_room():
         generate_map()
         transition_handler.fade(0, lambda: print("next room"))
         changing_rooms = False
+        transition_handler.fade_announcement(1, lambda: transition_handler.fade_announcement(0, lambda: print("Finished")))
     sounds.exit.play()
     transition_handler.fade(1, on_transition_finished)
 
@@ -115,7 +121,7 @@ def draw():
     for enemy in enemies:
         enemy.draw()
     for key_item in keys_items:
-        screen.blit('key', (key_item[0] * TILE + 4, key_item[1] * TILE + 4))
+        screen.blit('key', (key_item[0] * TILE, key_item[1] * TILE))
     player.draw()
     # GUI
     # transitions overlay
@@ -123,17 +129,29 @@ def draw():
     overlay.fill((0, 0, 0))
     overlay.set_alpha(transition_handler.transition_overlay_opacity * 255)
     screen.blit(overlay, (0, 0))
-    screen.draw.text(f"Keys collected: {keys_collected} / {required_keys}", (12, 12), color = "white", owidth = 1, ocolor = "black", alpha = gui_opacity)
-    screen.draw.text(f"Health: {player.current_health} / {player.max_health}", (12, 36), color = "white", owidth = 1, ocolor = "black", alpha = gui_opacity)
+    for heart in range(player.current_health):
+        surface = images.heart
+        surface.set_alpha(gui_opacity * 255)
+        screen.blit(surface, (12 + heart * 32, 12))
     for i in range(steps_before_enemy_move - current_step_count):
-        # need to use a surface as blit does not support alpha for some reason
         surface = images.footstep
         surface.set_alpha(gui_opacity * 255)
-        screen.blit(surface, (12 + i * 20, 60))
+        screen.blit(surface, (12 + i * 20, 48))
+    for key in range(required_keys):
+        if key < keys_collected:
+            surface = images.key.copy()
+            surface.set_alpha(gui_opacity * 255)
+            screen.blit(surface, (12 + key * 20, 72))
+        else:
+            surface = images.key_filled
+            surface.set_alpha(gui_opacity * 255)
+            screen.blit(surface, (12 + key * 20, 72))
     # death screen
     screen.draw.text("YOU DIED...", (WIDTH / 2, HEIGHT / 2 - 48), fontsize = 48,  anchor = (0.5, 0.5), color = "red", owidth = 2, ocolor = "black", alpha = 1 - gui_opacity)
     screen.draw.text(f"Dungeons cleared: {current_room - 1}", (WIDTH / 2, HEIGHT / 2 - 12), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black", alpha = 1 - gui_opacity)
     screen.draw.text("Press 'R' to restart.", (WIDTH / 2, HEIGHT / 2 + 12), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black", alpha = 1 - gui_opacity)
+    # announcement
+    screen.draw.text(f"Dungeon floor {current_room}", (WIDTH / 2, HEIGHT / 2), fontsize = 64,  anchor = (0.5, 0.5), color = "white", owidth = 2, ocolor = "black", alpha = transition_handler.announcement_opacity)
 
 def update():
     global gui_opacity
