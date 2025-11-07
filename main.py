@@ -6,6 +6,7 @@ from player import Player
 from enemy import Enemy
 from map_generator import MapGenerator
 from transition_handler import TransitionHandler
+from camera import Camera
 
 WIDTH = 432
 HEIGHT = 432
@@ -24,6 +25,7 @@ changing_rooms = False
 
 map_generator = MapGenerator()
 transition_handler = TransitionHandler()
+camera = Camera(WIDTH, HEIGHT)
 generated_map = []
 player_x = 0
 player_y = 0
@@ -39,7 +41,6 @@ def restart():
     player = Player('player', on_death = on_player_death)
     player_x = 13
     player_y = 13
-    player.move(player_x, player_y, TILE)
     transition_handler.fade(0, lambda: print("reset fade"))
     gui_opacity = 1
     current_room = 0
@@ -53,6 +54,7 @@ def generate_map():
     player_x = 13
     player_y = 13
     player.move(player_x, player_y, TILE)
+    camera.set_position(player_x * TILE + TILE/2, player_y * TILE + TILE/2)
     generated_map = map_generator.generate_map(3, 3)
     add_items_and_enemies()
     current_room += 1
@@ -102,25 +104,31 @@ def draw():
             room = generated_map[y][x].room_plan
             for j in range(len(room)):
                 for i in range(len(room[j])):
+                    world_x = x * TILE * 9 + i * TILE + 8
+                    world_y = y * TILE * 9 + j * TILE + 8
+                    screen_pos = camera.world_to_screen(world_x, world_y)
                     if room[j][i] == 0:
-                        screen.blit('floor', (x * TILE * 9 + i * TILE, y * TILE * 9 + j * TILE))
+                        screen.blit('floor', screen_pos)
                     elif room[j][i] == 1:
-                        screen.blit('wall', (x * TILE * 9 + i * TILE, y * TILE * 9 + j * TILE))
+                        screen.blit('wall', screen_pos)
                     elif room[j][i] == 2:
                         pass # a trap
                     elif room[j][i] == 3:
-                        screen.blit('floor', (x * TILE * 9 + i * TILE, y * TILE * 9 + j * TILE))
+                        screen.blit('floor', screen_pos)
                         # place a key
                     elif room[j][i] == 4:
-                        screen.blit('floor', (x * TILE * 9 + i * TILE, y * TILE * 9 + j * TILE))
+                        screen.blit('floor', screen_pos)
                         # place an enemy
                     elif room[j][i] == 9:
-                        screen.blit('exit', (x * TILE * 9 + i * TILE, y * TILE * 9 + j * TILE))
+                        screen.blit('exit', screen_pos)
     for enemy in enemies:
-        enemy.draw()
+        camera.draw_actor(enemy, 3, 3)
     for key_item in keys_items:
-        screen.blit('key', (key_item[0] * TILE, key_item[1] * TILE))
-    player.draw()
+        world_x = key_item[0] * TILE
+        world_y = key_item[1] * TILE
+        screen_x, screen_y = camera.world_to_screen(world_x, world_y)
+        screen.blit('key', (screen_x + 12, screen_y + 12))
+    camera.draw_actor(player, 3, 3)
     # GUI
     # transitions overlay
     overlay = screen.surface.copy()
@@ -169,6 +177,7 @@ def on_key_down(key):
         global current_step_count, keys_collected
         remaining_steps = player.available_steps
         player.move(player_x, player_y, TILE)
+        camera.set_position(player_x * TILE + TILE/2, player_y * TILE + TILE/2)
         if (player_x, player_y) in keys_items:
             keys_items.remove((player_x, player_y))
             keys_collected += 1
