@@ -17,6 +17,7 @@ class Player(Actor):
         self.image = self.animations[self.current_animation + "_" + self.direction][0]
         self.fps = 12
         self.frame_index = 0
+        main.clock.schedule_interval(self.advance_frame, 1 / self.fps)
         # player related stuff
         self.max_steps = 2
         self.available_steps = self.max_steps
@@ -25,7 +26,6 @@ class Player(Actor):
         self.current_health = max_health
         self.dead = False
         self.on_death = on_death
-        main.clock.schedule_interval(self.advance_frame, 1 / self.fps)
     
     def advance_frame(self):
         frames = self.animations[self.current_animation + "_" + self.direction]
