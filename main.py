@@ -36,7 +36,10 @@ player_x = 0
 player_y = 0
 exit_x = 0
 exit_y = 0
-music.play('menu')
+try:
+    music.play('menu')
+except:
+    print("No music available")
 
 def on_player_death():
     transition_handler.fade(0.5, lambda: print("Transition finished"))
@@ -197,7 +200,10 @@ def play_pressed():
     def hide_menu():
         global in_menu
         in_menu = False
-        music.play('ambience')
+        try:
+            music.play('ambience')
+        except:
+            print("No music available")
         restart()
         transition_handler.fade(0, lambda: print("Lets go"))
     transition_handler.fade(1, lambda: hide_menu())
@@ -205,7 +211,10 @@ def play_pressed():
 def music_pressed():
     global music_enabled
     music_enabled = not music_enabled
-    music.set_volume(int(music_enabled))
+    try:
+        music.set_volume(int(music_enabled))
+    except:
+        print("No music available")
 
 def exit_pressed():
     quit()
