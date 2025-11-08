@@ -71,7 +71,7 @@ class Enemy(Actor):
         room = generated_map[map_position_y][map_position_x]
         room_x = int(new_x % 9)
         room_y = int(new_y % 9)
-        while room.room_plan[room_y][room_x] == 1:
+        while room.room_plan[room_y][room_x] == 1 or room.room_plan[room_y][room_x] == 2:
             new_x = self.x // tile_size
             new_y = self.y // tile_size
             if random.choice([True, False]):

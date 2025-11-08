@@ -23,7 +23,9 @@ gui_opacity = 1
 current_room = 0
 changing_rooms = False
 in_menu = True
+show_pause = False
 current_menu_option = 0
+current_pause_option = 0
 music_enabled = True
 
 map_generator = MapGenerator()
@@ -108,7 +110,7 @@ def draw():
         screen.draw.text(f"{"> " if current_menu_option == 0 else ""}Play{" <" if current_menu_option == 0 else ""}", (WIDTH / 2, HEIGHT / 2 + 16), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
         screen.draw.text(f"{"> " if current_menu_option == 1 else ""}Music: {"ON" if music_enabled else "OFF"}{" <" if current_menu_option == 1 else ""}", (WIDTH / 2, HEIGHT / 2 + 40), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
         screen.draw.text(f"{"> " if current_menu_option == 2 else ""}Exit{" <" if current_menu_option == 2 else ""}", (WIDTH / 2, HEIGHT / 2 + 64), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
-        screen.draw.text("Use arrows or WASD to move. Space to select\nCreated by Aleksy Prawiłow(Aleksey Pravilov)", (WIDTH / 2, HEIGHT - 32), fontsize = 18,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
+        screen.draw.text("Use arrows or WASD to move. Space to select. C to drink a potion.\nCreated by Aleksy Prawiłow(Aleksey Pravilov)", (WIDTH / 2, HEIGHT - 32), fontsize = 18,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
     else:
         for y in range(len(generated_map)):
             for x in range(len(generated_map[y])):
@@ -121,21 +123,18 @@ def draw():
                         world_y = y * TILE * 9 + j * TILE + 32
                         screen_pos = camera.world_to_screen(world_x, world_y)
                         if room[j][i] == 0:
-                            screen.blit('floor', screen_pos)
+                            pass
                         if room[j][i] == 1:
                             screen.blit('wall', screen_pos)
                         elif room[j][i] == 2:
-                            pass # a trap
+                            screen.blit('trap', screen_pos)
                         elif room[j][i] == 3:
                             screen.blit('floor', screen_pos)
                             # place a key
                         elif room[j][i] == 4:
                             screen.blit('floor', screen_pos)
-                            # place an enemy
                         elif room[j][i] == 9:
                             screen.blit('exit', screen_pos)
-        for enemy in enemies:
-            camera.draw_actor(enemy, 0, 0)
         for key_item in keys_items:
             world_x = key_item[0] * TILE
             world_y = key_item[1] * TILE
@@ -146,7 +145,9 @@ def draw():
             world_y = item[1] * TILE
             screen_x, screen_y = camera.world_to_screen(world_x, world_y)
             screen.blit('potion', (screen_x + 32, screen_y + 32))
-        camera.draw_actor(player, 0, 0)
+        for enemy in enemies:
+            camera.draw_actor(enemy)
+        camera.draw_actor(player)
     # GUI
     # transitions overlay
     overlay = screen.surface.copy()
@@ -167,9 +168,19 @@ def draw():
             surface.set_alpha(gui_opacity * 255)
             screen.blit(surface, (12 + i * 64, 12 + 128))
         for key in range(keys_collected):
-            surface = images.key
+            surface = images.key.copy()
             surface.set_alpha(gui_opacity * 255)
-            screen.blit(surface, (12 + key * 80, 12 + 192 if player.potions > 0 else 12 + 128))
+            screen.blit(surface, (12 + key * 64, 12 + 192 if player.potions > 0 else 12 + 128))
+        if show_pause:
+            pause_overlay = screen.surface.copy()
+            pause_overlay.fill((0, 0, 0))
+            pause_overlay.set_alpha(128)
+            screen.blit(pause_overlay, (0, 0))
+            screen.draw.text("Game Paused", (WIDTH / 2, HEIGHT / 2 - 48), fontsize = 48,  anchor = (0.5, 0.5), color = "white", owidth = 2, ocolor = "black")
+            screen.draw.text(f"{"> " if current_pause_option == 0 else ""}Resume{" <" if current_pause_option == 0 else ""}", (WIDTH / 2, HEIGHT / 2 + 16), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
+            screen.draw.text(f"{"> " if current_pause_option == 1 else ""}Music: {"ON" if music_enabled else "OFF"}{" <" if current_pause_option == 1 else ""}", (WIDTH / 2, HEIGHT / 2 + 40), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
+            screen.draw.text(f"{"> " if current_pause_option == 2 else ""}Exit{" <" if current_pause_option == 2 else ""}", (WIDTH / 2, HEIGHT / 2 + 64), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
+            screen.draw.text("Use arrows or WASD to move. Space to select. C to drink a potion.\nCreated by Aleksy Prawiłow(Aleksey Pravilov)", (WIDTH / 2, HEIGHT - 32), fontsize = 18,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black")
         # death screen
         screen.draw.text("YOU DIED...", (WIDTH / 2, HEIGHT / 2 - 48), fontsize = 48,  anchor = (0.5, 0.5), color = "red", owidth = 2, ocolor = "black", alpha = 1 - gui_opacity)
         screen.draw.text(f"Dungeons cleared: {current_room - 1}", (WIDTH / 2, HEIGHT / 2 - 12), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black", alpha = 1 - gui_opacity)
@@ -247,27 +258,64 @@ def on_key_down(key):
         if changing_rooms:
             return
         if not player.dead:
+            global current_pause_option
+            if key == keys.ESCAPE:
+                global show_pause
+                show_pause = not show_pause
+                current_pause_option = 0
+            if show_pause:
+                if key == keys.W or key == keys.UP:
+                    current_pause_option -= 1
+                    if current_pause_option < 0:
+                        current_pause_option = 2
+                    sounds.key_pickup.play()
+                elif key == keys.S or key == keys.DOWN:
+                    current_pause_option += 1
+                    if current_pause_option > 2:
+                        current_pause_option = 0
+                    sounds.key_pickup.play()
+                elif key == keys.SPACE:
+                    if current_pause_option == 0:
+                        show_pause = False
+                        current_pause_option = 0
+                    elif current_pause_option == 1:
+                        music_pressed()
+                    elif current_pause_option == 2:
+                        exit_pressed()
+                return
             if key == keys.LEFT or key == keys.A:
                 player_x -= 1
-                if generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9] == 1:
+                tile_id = generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9]
+                if tile_id == 2:
+                    player.damage(1)
+                if tile_id == 1:
                     player_x += 1
                     return
                 move_player()
             elif key == keys.RIGHT or key == keys.D:
                 player_x += 1
-                if generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9] == 1:
+                tile_id = generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9]
+                if tile_id == 2:
+                    player.damage(1)
+                if tile_id == 1:
                     player_x -= 1
                     return
                 move_player()
             elif key == keys.UP or key == keys.W:
                 player_y -= 1
-                if generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9] == 1:
+                tile_id = generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9]
+                if tile_id == 2:
+                    player.damage(1)
+                if tile_id == 1:
                     player_y += 1
                     return
                 move_player()
             elif key == keys.DOWN or key == keys.S:
                 player_y += 1
-                if generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9] == 1:
+                tile_id = generated_map[player_y // 9][player_x // 9].room_plan[player_y % 9][player_x % 9]
+                if tile_id == 2:
+                    player.damage(1)
+                if tile_id == 1:
                     player_y -= 1
                     return
                 move_player()

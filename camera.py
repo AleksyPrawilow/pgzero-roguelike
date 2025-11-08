@@ -19,8 +19,8 @@ class Camera():
         sy = int(global_y - top_left_y)
         return (sx, sy)
     
-    def draw_actor(self, actor, offset_x, offset_y):
-        screen_pos = self.world_to_screen(actor.x + offset_x, actor.y + offset_y)
+    def draw_actor(self, actor):
+        screen_pos = self.world_to_screen(actor.x, actor.y)
         old_top_left = actor.topleft
         actor.topleft = screen_pos
         actor.draw()
