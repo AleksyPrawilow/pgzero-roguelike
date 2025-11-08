@@ -8,9 +8,9 @@ from map_generator import MapGenerator
 from transition_handler import TransitionHandler
 from camera import Camera
 
-WIDTH = 432
-HEIGHT = 432
-TILE = 16
+WIDTH = 1280
+HEIGHT = 720
+TILE = 64
 
 enemies = []
 items = []
@@ -117,12 +117,12 @@ def draw():
                 room = generated_map[y][x].room_plan
                 for j in range(len(room)):
                     for i in range(len(room[j])):
-                        world_x = x * TILE * 9 + i * TILE + 8
-                        world_y = y * TILE * 9 + j * TILE + 8
+                        world_x = x * TILE * 9 + i * TILE + 32
+                        world_y = y * TILE * 9 + j * TILE + 32
                         screen_pos = camera.world_to_screen(world_x, world_y)
                         if room[j][i] == 0:
                             screen.blit('floor', screen_pos)
-                        elif room[j][i] == 1:
+                        if room[j][i] == 1:
                             screen.blit('wall', screen_pos)
                         elif room[j][i] == 2:
                             pass # a trap
@@ -140,13 +140,13 @@ def draw():
             world_x = key_item[0] * TILE
             world_y = key_item[1] * TILE
             screen_x, screen_y = camera.world_to_screen(world_x, world_y)
-            screen.blit('key', (screen_x + 12, screen_y + 12))
+            screen.blit('key', (screen_x + 32, screen_y + 32))
         for item in items:
             world_x = item[0] * TILE
             world_y = item[1] * TILE
             screen_x, screen_y = camera.world_to_screen(world_x, world_y)
-            screen.blit('potion', (screen_x + 12, screen_y + 12))
-        camera.draw_actor(player, 3, 3)
+            screen.blit('potion', (screen_x + 32, screen_y + 32))
+        camera.draw_actor(player, 0, 0)
     # GUI
     # transitions overlay
     overlay = screen.surface.copy()
@@ -157,24 +157,19 @@ def draw():
         for heart in range(player.current_health):
             surface = images.heart
             surface.set_alpha(gui_opacity * 255)
-            screen.blit(surface, (12 + heart * 32, 12))
+            screen.blit(surface, (12 + heart * 64, 12))
         for i in range(player.available_steps):
             surface = images.footstep
             surface.set_alpha(gui_opacity * 255)
-            screen.blit(surface, (12 + i * 20, 48))
+            screen.blit(surface, (12 + i * 64, 12 + 64))
         for i in range(player.potions):
             surface = images.potion
             surface.set_alpha(gui_opacity * 255)
-            screen.blit(surface, (12 + i * 20, 72))
-        for key in range(required_keys):
-            if key < keys_collected:
-                surface = images.key.copy()
-                surface.set_alpha(gui_opacity * 255)
-                screen.blit(surface, (12 + key * 20, 96 if player.potions > 0 else 72))
-            else:
-                surface = images.key_filled
-                surface.set_alpha(gui_opacity * 255)
-                screen.blit(surface, (12 + key * 20, 96 if player.potions > 0 else 72))
+            screen.blit(surface, (12 + i * 64, 12 + 128))
+        for key in range(keys_collected):
+            surface = images.key
+            surface.set_alpha(gui_opacity * 255)
+            screen.blit(surface, (12 + key * 80, 12 + 192 if player.potions > 0 else 12 + 128))
         # death screen
         screen.draw.text("YOU DIED...", (WIDTH / 2, HEIGHT / 2 - 48), fontsize = 48,  anchor = (0.5, 0.5), color = "red", owidth = 2, ocolor = "black", alpha = 1 - gui_opacity)
         screen.draw.text(f"Dungeons cleared: {current_room - 1}", (WIDTH / 2, HEIGHT / 2 - 12), fontsize = 24,  anchor = (0.5, 0.5), color = "white", owidth = 1, ocolor = "black", alpha = 1 - gui_opacity)
