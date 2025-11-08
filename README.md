@@ -20,9 +20,9 @@ This is a small semi turn based roguelike made with pgzero. Move with WASD / arr
 ## Controls
 
 * Move: WASD or ↑←↓→
-* Drink potion (skip enemy move): C
+* Drink potion (delay the enemy move): C
 * Toggle music: from main or pause menu
-* Pause: escacpe key
+* Pause: escape key
 
 ## Objective and gameplay
 
